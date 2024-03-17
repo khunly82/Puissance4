@@ -1,39 +1,83 @@
-﻿using Puissance4.Business;
-using Puissance4.Business.Enums;
+﻿using Puissance4.Business.Services;
+using Puissance4.Domain.Entities;
+using Puissance4.Domain.Enums;
+using ShellProgressBar;
 
-P4Grid grid = new P4Grid();
-P4Color color = P4Color.Yellow;
+P4Service service = new P4Service();
 
-while (grid.Status == null)
+Train(1, true);
+//Train(100, false);
+
+
+void Train(int times, bool visible)
 {
-    //Thread.Sleep(500);
-    color = (P4Color)(((int)color + 1) % 2);
-    Play(color);
-    Display(grid);
-}
+    int r = 0;
+    int y = 0;
+    int d = 0;
 
-void Play(P4Color c)
-{
-    try
+    ProgressBar? bar = null;
+    if(!visible)
     {
-        grid.Play(new Random().Next(0, 7), c);
+        bar = new ProgressBar(times, "In Progress");
     }
-    catch (Exception)
+
+    for (int i = 0; i < times; i++)
     {
+        P4Grid grid = new P4Grid();
+        P4Color color = P4Color.Yellow;
 
-        Play(c);
+        while (grid.Status == null)
+        {
+            color = color.Switch();
+            //if (i % 2 == 0)
+            //if(color == P4Color.Yellow)
+            if(color == P4Color.Red)
+            {
+                service.AIPlay(grid, color, 4);
+            }
+            else
+            {
+                //service.IAPlay(grid, color, 4);
+                var _ = service.DirectPlay(grid, color) ?? service.RandomPlay(grid, color);
+            }
+            if (visible)
+            {
+                Display(grid);
+                Thread.Sleep(500);
+            }
+        }
+        if(visible)
+        {
+            //Console.WriteLine(grid.Status);
+        }
+        switch (grid.Status)
+        {
+            case P4Status.YellowWin:
+                y++;
+                break;
+            case P4Status.RedWin: 
+                r++; break;
+            default:
+                d++;
+                break;
+        }
+        //service.Save(grid, "C:\\Users\\K\\Desktop\\Puissance4\\Puissance4.Business\\Data\\games.csv");
+        bar?.Tick();
     }
+    bar?.Dispose();
+    Console.SetCursorPosition(0, 5);
+    Console.WriteLine($"R: {r}\nY: {y}\nD: {d}");
 }
-
 
 void Display(P4Grid grid)
 {
     Console.Clear();
-    for (int x = 0; x < grid.Tiles.GetLength(0); x++)
+
+    for (int x = 0; x < grid.Width; x++)
     {
-        for (int y = 0; y < grid.Tiles.GetLength(1); y++)
+        for (int y = 0; y < grid.Height; y++)
         {
-            Console.SetCursorPosition(x, 6 - y);
+            Console.SetCursorPosition(x, 6 - y + 15);
             P4Color? color = grid[x, y];
             if(color is P4Color c)
             {
@@ -49,10 +93,9 @@ void DisplayTile(P4Color v)
         v == P4Color.Red 
         ? ConsoleColor.Red 
         : ConsoleColor.Yellow; 
-    Console.Write("0");
+    Console.Write(v == P4Color.None ? "" : "0");
     Console.ResetColor();
 }
 
-Console.SetCursorPosition(0, 10);
-Console.WriteLine(grid.Status);
+
 Console.ReadKey();
