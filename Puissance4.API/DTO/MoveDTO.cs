@@ -1,14 +1,11 @@
-﻿namespace Puissance4.API.DTO
-{
-    public class MoveDTO
-    {
-        public MoveDTO(int x, int y)
-        {
-            X = x;
-            Y = y;
-        }
+﻿using Puissance4.Domain.Enums;
 
-        public int X { get; set; }
-        public int Y { get; set; }
+namespace Puissance4.API.DTO
+{
+    public class MoveDTO(int x, int y, P4Color color)
+    {
+        public int X { get; set; } = x;
+        public int Y { get; set; } = y;
+        public P4Color Color { get; set; } = color;
     }
 }

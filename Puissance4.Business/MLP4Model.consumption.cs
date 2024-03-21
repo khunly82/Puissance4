@@ -336,7 +336,7 @@ namespace Puissance4.Business
 
         #endregion
 
-        private static string MLNetModelPath = Path.GetFullPath("MLP4Model.mlnet");
+        private static string MLNetModelPath = Path.GetFullPath("C:\\Users\\K\\Desktop\\Puissance4\\Puissance4.Business\\MLP4Model.mlnet");
 
         public static readonly Lazy<PredictionEngine<ModelInput, ModelOutput>> PredictEngine = new Lazy<PredictionEngine<ModelInput, ModelOutput>>(() => CreatePredictEngine(), true);
 

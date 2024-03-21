@@ -11,7 +11,9 @@ namespace Puissance4.Domain.Entities
         public Player? RedPlayer { get; set; } = null!;
         public Player? YellowPlayer { get; set; } = null!;
         public string SerializedGrid { get; set; } = null!;
-        public P4Color? Winner { get; set; }
+        public P4Color? Winner {
+            get => (P4Color?)(int?)Grid.Status;
+        }
         public bool VersusAI { get; set; }
 
         [NotMapped]

@@ -16,8 +16,4 @@
     <ProjectReference Include="..\Puissance4.Infrastructure\Puissance4.Infrastructure.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>

@@ -21,6 +21,7 @@
     <Folder Include="Enums\" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Puissance4.DAL\Puissance4.DAL.csproj" />
     <ProjectReference Include="..\Puissance4.Domain\Puissance4.Domain.csproj" />
   </ItemGroup>
 </Project>

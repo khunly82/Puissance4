@@ -1,5 +1,8 @@
+using Microsoft.Data.SqlClient;
 using Puissance4.API.Hubs;
+using Puissance4.API.Middlewares;
 using Puissance4.Business.Services;
+using Puissance4.DAL.Repositories;
 using Puissance4.Infrastructure.Security;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -25,6 +28,13 @@ TokenManager.Config tokenConfig = builder.Configuration.GetSection("Jwt").Get<To
 builder.Services.AddSingleton(tokenConfig);
 
 builder.Services.AddScoped<P4Service>();
+builder.Services.AddScoped<GameService>();
+builder.Services.AddScoped<PlayerService>();
+
+builder.Services.AddScoped(b => 
+    new SqlConnection(builder.Configuration.GetConnectionString("Main"))
+);
+builder.Services.AddScoped<PlayerRepository>();
 
 var app = builder.Build();
 
@@ -37,9 +47,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
+app.UseMiddleware<TokenMiddleware>();
+
 app.UseAuthorization();
 
 app.MapControllers();
+
 
 app.MapHub<GameHub>("ws/game");
 

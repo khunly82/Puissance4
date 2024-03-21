@@ -23,7 +23,7 @@ namespace Puissance4.Business.Services
             return game;
         }
 
-        public void JoinGame(Guid gameId, int userId)
+        public Game JoinGame(Guid gameId, int? userId)
         {
             Game? game = Find(gameId);
             if (game is null)
@@ -34,8 +34,13 @@ namespace Puissance4.Business.Services
             {
                 throw new GameException("This place is already taken");
             }
+            if(game.YellowPlayerId == userId || game.RedPlayerId == userId)
+            {
+                throw new GameException("You are alreary in this game");
+            }
             game.RedPlayerId = game.RedPlayerId == null ? userId : game.RedPlayerId;
             game.YellowPlayerId = game.YellowPlayerId == null ? userId : game.YellowPlayerId;
+            return game;
         }
 
 
@@ -47,6 +52,24 @@ namespace Puissance4.Business.Services
         public List<Game> FindAll()
         {
             return _games;
+        }
+
+        public void Delete(int? userId)
+        {
+            Game? g = _games.FirstOrDefault(g => g.YellowPlayerId == userId || g.RedPlayerId == userId);
+            if(g != null)
+            {
+                _games.Remove(g);
+            }
+        }
+
+        public void Remove(Guid id)
+        {
+            Game? g = _games.FirstOrDefault(ga => ga.Id == id);
+            if(g != null)
+            {
+                _games.Remove(g);
+            }
         }
     }
 }

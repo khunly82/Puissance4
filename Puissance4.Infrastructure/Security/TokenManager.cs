@@ -33,5 +33,25 @@ namespace Puissance4.Infrastructure.Security
 
             return _handler.WriteToken(token);
         }
+
+        public ClaimsPrincipal? Validate(string token)
+        {
+            TokenValidationParameters validationParameters = new TokenValidationParameters()
+            {
+                ValidateAudience = false,
+                ValidateIssuer = false,
+                ValidateLifetime = false,
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = SecurityKey,
+            };
+            try
+            {
+                return _handler.ValidateToken(token, validationParameters, out SecurityToken t);
+            }
+            catch (Exception) 
+            { 
+                return null;
+            }
+        }
     }
 }
