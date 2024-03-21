@@ -19,10 +19,15 @@ namespace Puissance4.API.Hubs
             
             await Groups.AddToGroupAsync(Context.ConnectionId, g.Id.ToString());
 
-            if(dto.VersusAI && dto.Color == P4Color.Yellow)
+            if(dto.VersusAI)
             {
-                p4Service.AIPlay(g.Grid, P4Color.Red, 4);
+                g.VersusAI = true;
+                if(dto.Color == P4Color.Yellow)
+                {
+                    p4Service.AIPlay(g.Grid, P4Color.Red, 4);
+                }
             }
+
 
             await Clients.Caller.SendAsync("currentGame", new GameDTO(g, true));
             await BroadCastAllGamesAsync(Clients.All);
@@ -64,7 +69,7 @@ namespace Puissance4.API.Hubs
 
             if (game.VersusAI && game.Winner == null)
             {
-                (int, int) opponentMove = p4Service.AIPlay(game.Grid, color.Switch(), 1);
+                (int, int) opponentMove = p4Service.AIPlay(game.Grid, color.Switch(), 4);
                 await Clients.Caller.SendAsync(
                     "move", new MoveDTO(opponentMove.Item1, opponentMove.Item2, color.Switch())
                 );

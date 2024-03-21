@@ -1,24 +1,35 @@
 ﻿using Puissance4.Business.Exceptions;
+using Puissance4.DAL.Repositories;
 using Puissance4.Domain.Entities;
 using Puissance4.Domain.Enums;
 
 namespace Puissance4.Business.Services
 {
-    public class GameService
+    public class GameService(PlayerRepository _playerRepository)
     {
         private static List<Game> _games = new();
 
         public Game CreateGame(P4Color color, bool versusAI, int? userId)
         {
+            Player? player = _playerRepository.FindById(userId);
+
+            if (player is null)
+            {
+                throw new ArgumentException();
+            }
+
             Guid guid = Guid.NewGuid();
 
             Game game = new Game
             {
                 Id = guid,
                 VersusAI = versusAI,
-                YellowPlayerId = color == P4Color.Yellow ? userId : null,
                 RedPlayerId = color == P4Color.Red ? userId : null,
+                YellowPlayerId = color == P4Color.Yellow ? userId : null,
+                RedPlayer = color == P4Color.Red ? player : null,
+                YellowPlayer = color == P4Color.Yellow ? player : null,
             };
+
             _games.Add(game);
             return game;
         }
@@ -38,8 +49,27 @@ namespace Puissance4.Business.Services
             {
                 throw new GameException("You are alreary in this game");
             }
+
+            Player? player = _playerRepository.FindById(userId);
+
+            if (player is null)
+            {
+                throw new ArgumentException();
+            }
+
             game.RedPlayerId = game.RedPlayerId == null ? userId : game.RedPlayerId;
             game.YellowPlayerId = game.YellowPlayerId == null ? userId : game.YellowPlayerId;
+            if(game.RedPlayerId == null)
+            {
+                game.RedPlayerId = userId;
+                game.RedPlayer = player;
+            } 
+            else
+            {
+                game.YellowPlayerId = userId;
+                game.YellowPlayer = player;
+            }
+
             return game;
         }
 

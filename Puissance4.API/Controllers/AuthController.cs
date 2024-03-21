@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Puissance4.API.DTO;
 using Puissance4.Business.Services;
 using Puissance4.Domain.Entities;

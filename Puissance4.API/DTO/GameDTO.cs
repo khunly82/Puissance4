@@ -13,7 +13,8 @@ namespace Puissance4.API.DTO
             YellowPlayerId = g.YellowPlayerId;
             RedPlayerName = g.RedPlayer?.Username;
             YellowPlayerName = g.YellowPlayer?.Username;
-            if(full)
+            VersusAI = g.VersusAI;
+            if (full)
             {
                 Grid = new P4Color[7][];
                 for(int x = 0; x < g.Grid.Width; x++)
@@ -32,6 +33,7 @@ namespace Puissance4.API.DTO
         public int? YellowPlayerId { get; set; }
         public string? RedPlayerName { get; set; }
         public string? YellowPlayerName { get; set; }
+        public bool VersusAI { get; set; }
 
         public P4Color[][]? Grid{ get; set; }
     }

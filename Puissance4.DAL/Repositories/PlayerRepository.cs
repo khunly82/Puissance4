@@ -17,6 +17,12 @@ namespace Puissance4.DAL.Repositories
             connection.Execute(sql, player);
         }
 
+        public Player? FindById(int? userId)
+        {
+            string sql = @"SELECT * FROM Player WHERE Id LIKE @id";
+            return connection.QueryFirstOrDefault<Player>(sql, new { Id = userId });
+        }
+
         public Player? FindByUsername(string username)
         {
             string sql = @"SELECT * FROM Player WHERE Username LIKE @username";
