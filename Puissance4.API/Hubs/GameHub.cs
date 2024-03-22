@@ -116,9 +116,15 @@ namespace Puissance4.API.Hubs
 
         public async override Task OnDisconnectedAsync(Exception? exception)
         {
-            //gameService.Delete(UserId);
             await BroadCastAllGamesAsync(Clients.All);
-            //GameBO? game = gameService.FindByPlayerId();
+            GameBO? game = gameService.FindByPlayerId(UserId);
+            if (game != null)
+            {
+                if(game.Winner != null || game.VersusAI)
+                {
+                    await LeaveGame(new GameIdDTO() { GameId = game.Id });
+                }
+            }
         }
 
         private int? UserId {
