@@ -1,8 +1,9 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
 using Puissance4.API.DTO;
+using Puissance4.Business.BusinessObjects;
+using Puissance4.Business.Exceptions;
 using Puissance4.Business.Services;
-using Puissance4.Domain.Entities;
 using Puissance4.Domain.Enums;
 using System.Security.Claims;
 
@@ -15,7 +16,7 @@ namespace Puissance4.API.Hubs
         public async Task CreateGame(CreateGameDTO dto)
         {
 
-            Game g = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
+            GameBO g = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
             
             await Groups.AddToGroupAsync(Context.ConnectionId, g.Id.ToString());
 
@@ -34,19 +35,20 @@ namespace Puissance4.API.Hubs
         }
 
         [Authorize]
-        public async Task JoinGame(JoinGameDTO dto)
+        public async Task JoinGame(GameIdDTO dto)
         {
-            Game g = gameService.JoinGame(dto.GameId, UserId);
+            GameBO g = gameService.JoinGame(dto.GameId, UserId);
 
             await Groups.AddToGroupAsync(Context.ConnectionId, dto.GameId.ToString());
-            await Clients.Group(dto.GameId.ToString()).SendAsync("currentGame", new GameDTO(g, true));
+            await Clients.Group(dto.GameId.ToString())
+                .SendAsync("currentGame", new GameDTO(g, true));
             await BroadCastAllGamesAsync(Clients.All);
         }
 
         [Authorize]
         public async Task Play(PlayDTO dto)
         {
-            Game? game = gameService.Find(dto.GameId);
+            GameBO? game = gameService.Find(dto.GameId);
             if (game is null)
             {
                 return; 
@@ -63,35 +65,60 @@ namespace Puissance4.API.Hubs
                 return;
             }
 
-            int playerY = p4Service.Play(game.Grid, dto.X, color).Item2;
-
-            await Clients.Group(game.Id.ToString()).SendAsync("move", new MoveDTO(dto.X, playerY, color));
-
-            if (game.VersusAI && game.Winner == null)
+            try
             {
-                (int, int) opponentMove = p4Service.AIPlay(game.Grid, color.Switch(), 4);
-                await Clients.Caller.SendAsync(
-                    "move", new MoveDTO(opponentMove.Item1, opponentMove.Item2, color.Switch())
-                );
+                int playerY = p4Service.Play(game.Grid, dto.X, color).Item2;
+                await Clients.Group(game.Id.ToString()).SendAsync("move", new MoveDTO(dto.X, playerY, color));
+
+                if (game.VersusAI && game.Winner == null)
+                {
+                    (int, int) opponentMove = p4Service.AIPlay(game.Grid, color.Switch(), 4);
+                    await Clients.Caller.SendAsync(
+                        "move", new MoveDTO(opponentMove.Item1, opponentMove.Item2, color.Switch())
+                    );
+                }
+                if(game.Winner != null)
+                {
+                    await Clients.Group(game.Id.ToString()).SendAsync("currentGame", new GameDTO(game, true));
+                }
+            } 
+            catch (GameException ex) 
+            {
+                await Clients.Caller.SendAsync("error", ex.Message);
             }
+        }
 
-            if(game.Winner != null)
+        [Authorize]
+        public async Task LeaveGame(GameIdDTO dto)
+        {
+            GameBO game = gameService.Leave(dto.GameId, UserId);
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, dto.GameId.ToString());
+            await Clients.Caller.SendAsync("leave");
+            await Clients.OthersInGroup(dto.GameId.ToString()).SendAsync("opponentLeave");
+            await Clients.OthersInGroup(dto.GameId.ToString()).SendAsync("currentGame", new GameDTO(game, true));
+
+            if(!(game.YellowPlayerConnected ?? false) && !(game.RedPlayerConnected ?? false))
             {
-                gameService.Remove(game.Id);
+                gameService.Remove(game);
                 await BroadCastAllGamesAsync(Clients.All);
-                await Clients.Group(game.Id.ToString()).SendAsync("gameEnd");
             }
         }
 
         public async override Task OnConnectedAsync()
         {
             await BroadCastAllGamesAsync(Clients.Caller);
+            GameBO? game = gameService.FindByPlayerId(UserId);
+            if (game != null)
+            {
+                await Clients.Caller.SendAsync("currentGame", new GameDTO(game, true));
+            }
         }
 
         public async override Task OnDisconnectedAsync(Exception? exception)
         {
-            gameService.Delete(UserId);
+            //gameService.Delete(UserId);
             await BroadCastAllGamesAsync(Clients.All);
+            //GameBO? game = gameService.FindByPlayerId();
         }
 
         private int? UserId {

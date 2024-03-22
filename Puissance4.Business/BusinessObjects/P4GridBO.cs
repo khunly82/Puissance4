@@ -1,16 +1,16 @@
 ﻿using Puissance4.Domain.Enums;
 using System.Collections;
 
-namespace Puissance4.Domain.Entities
+namespace Puissance4.Business.BusinessObjects
 {
-    public class P4Grid: IEnumerable<P4Color>
+    public class P4GridBO : IEnumerable<P4Color>
     {
 
-        public P4Grid()
+        public P4GridBO()
         {
-            
+
         }
-        public P4Grid(P4Color[,] tiles)
+        public P4GridBO(P4Color[,] tiles)
         {
             Tiles = tiles;
             Count = this.Count(c => c != P4Color.None);
@@ -24,7 +24,7 @@ namespace Puissance4.Domain.Entities
         {
             get
             {
-                 return Tiles[x, y];
+                return Tiles[x, y];
             }
             set
             {
@@ -37,9 +37,9 @@ namespace Puissance4.Domain.Entities
         public int Width => Tiles.GetLength(0);
         public int Height => Tiles.GetLength(1);
 
-        public P4Grid Clone()
+        public P4GridBO Clone()
         {
-            return new P4Grid((P4Color[,])Tiles.Clone());
+            return new P4GridBO((P4Color[,])Tiles.Clone());
         }
 
         public IEnumerator<P4Color> GetEnumerator()

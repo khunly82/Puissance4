@@ -1,4 +1,4 @@
-﻿using Puissance4.Domain.Entities;
+﻿using Puissance4.Business.BusinessObjects;
 using Puissance4.Domain.Enums;
 
 namespace Puissance4.API.DTO
@@ -6,14 +6,17 @@ namespace Puissance4.API.DTO
     public class GameDTO
     {
 
-        public GameDTO(Game g, bool full = false)
+        public GameDTO(GameBO g, bool full = false)
         {
             Id = g.Id;
             RedPlayerId = g.RedPlayerId;
             YellowPlayerId = g.YellowPlayerId;
-            RedPlayerName = g.RedPlayer?.Username;
-            YellowPlayerName = g.YellowPlayer?.Username;
+            RedPlayerName = g.RedPlayerName;
+            YellowPlayerName = g.YellowPlayerName;
+            RedPlayerConnected = g.RedPlayerConnected;
+            YellowPlayerConnected = g.YellowPlayerConnected;
             VersusAI = g.VersusAI;
+            Winner = g.Winner;
             if (full)
             {
                 Grid = new P4Color[7][];
@@ -33,7 +36,10 @@ namespace Puissance4.API.DTO
         public int? YellowPlayerId { get; set; }
         public string? RedPlayerName { get; set; }
         public string? YellowPlayerName { get; set; }
+        public bool? RedPlayerConnected { get; set; }
+        public bool? YellowPlayerConnected { get; set; }
         public bool VersusAI { get; set; }
+        public P4Color? Winner { get; set; }
 
         public P4Color[][]? Grid{ get; set; }
     }

@@ -3,12 +3,13 @@ using Puissance4.Business.Mappers;
 using Puissance4.Domain.Entities;
 using Puissance4.Domain.Enums;
 using Puissance4.Business;
+using Puissance4.Business.BusinessObjects;
 
 namespace Puissance4.Business.Services
 {
     public class P4Service
     {
-        public (int, int) Play(P4Grid grid, int x, P4Color color)
+        public (int, int) Play(P4GridBO grid, int x, P4Color color)
         {
             if(grid.Status is not null)
             {
@@ -42,27 +43,27 @@ namespace Puissance4.Business.Services
             return (x, y);
         }
 
-        private bool CheckTurn(P4Grid grid, P4Color color)
+        private bool CheckTurn(P4GridBO grid, P4Color color)
         {
             return (grid.Count % 2 == 0 && color == P4Color.Red)
                 || (grid.Count % 2 == 1 && color == P4Color.Yellow);
         }
 
-        public int ColHeight(P4Grid grid, int x)
+        public int ColHeight(P4GridBO grid, int x)
         {
             return Enumerable.Range(0, 6)
                 .Select(i => grid[x, i])
                 .Count(c => c != P4Color.None);
         }
 
-        public bool CheckVictory(P4Grid grid, int x, int y, P4Color color)
+        public bool CheckVictory(P4GridBO grid, int x, int y, P4Color color)
         {
             return CheckVertical(grid, x, y, color) 
                 || CheckHorizontal(grid, x, y, color) 
                 || CheckDiagonal(grid, x, y, color);
         }
 
-        private bool CheckHorizontal(P4Grid grid, int x, int y, P4Color color)
+        private bool CheckHorizontal(P4GridBO grid, int x, int y, P4Color color)
         {
             int c = 1;
             for (int dx = x + 1; dx < grid.Width; dx++)
@@ -84,7 +85,7 @@ namespace Puissance4.Business.Services
             return c >= 4;
         }
 
-        private bool CheckDiagonal(P4Grid grid, int x, int y, P4Color color)
+        private bool CheckDiagonal(P4GridBO grid, int x, int y, P4Color color)
         {
             int c1 = 1;
             int c2 = 1;
@@ -138,7 +139,7 @@ namespace Puissance4.Business.Services
             return false;
         }
 
-        private bool CheckVertical(P4Grid grid, int x, int y, P4Color color)
+        private bool CheckVertical(P4GridBO grid, int x, int y, P4Color color)
         {
             int c = 1;
             for (int dy = y - 1; dy >= 0; dy--)
@@ -152,7 +153,7 @@ namespace Puissance4.Business.Services
             return c >= 4;
         }
 
-        public void Save(P4Grid grid, string path)
+        public void Save(P4GridBO grid, string path)
         {
             if (grid.Status is null)
             {
@@ -162,12 +163,12 @@ namespace Puissance4.Business.Services
             sw.WriteLine(string.Join(',', grid.Cast<int>().Append((int)grid.Status)));
         }
 
-        public bool CanPlay(P4Grid grid, int x)
+        public bool CanPlay(P4GridBO grid, int x)
         {
             return ColHeight(grid, x) < grid.Height;
         }
 
-        public (int, int)? DirectPlay(P4Grid grid, P4Color c)
+        public (int, int)? DirectPlay(P4GridBO grid, P4Color c)
         {
             // is winning move
             int? winningMove = GetWinningMove(grid, c);
@@ -184,7 +185,7 @@ namespace Puissance4.Business.Services
             return null;
         }
 
-        public int? GetWinningMove(P4Grid grid, P4Color color)
+        public int? GetWinningMove(P4GridBO grid, P4Color color)
         {
             for (int i = 0; i < grid.Width; i++)
             {
@@ -200,7 +201,7 @@ namespace Puissance4.Business.Services
             return null;
         }
 
-        public (int, int) RandomPlay(P4Grid grid, P4Color c)
+        public (int, int) RandomPlay(P4GridBO grid, P4Color c)
         {
             try
             {
@@ -212,7 +213,7 @@ namespace Puissance4.Business.Services
             }
         }
 
-        public (int, int) AIPlay(P4Grid grid, P4Color color, int depht)
+        public (int, int) AIPlay(P4GridBO grid, P4Color color, int depht)
         {
 
             try
@@ -235,7 +236,7 @@ namespace Puissance4.Business.Services
             }
         }
 
-        private (int?, float?) ComputeBest(P4Grid grid, P4Color color, int depht = 1)
+        private (int?, float?) ComputeBest(P4GridBO grid, P4Color color, int depht = 1)
         {
             //if you want to stop if it's a winning move
             //int? winningMove = GetWinningMove(grid, color);
@@ -255,7 +256,7 @@ namespace Puissance4.Business.Services
                 if (CanPlay(grid, x))
                 {
                     int coeff = (int)color;
-                    P4Grid copy = grid.Clone();
+                    P4GridBO copy = grid.Clone();
                     copy[x, ColHeight(grid, x)] = color;
                     var input = copy.ToML();
                     var output = MLP4Model.Predict(input);

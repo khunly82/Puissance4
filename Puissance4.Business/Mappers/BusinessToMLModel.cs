@@ -1,10 +1,10 @@
-﻿using Puissance4.Domain.Entities;
+﻿using Puissance4.Business.BusinessObjects;
 
 namespace Puissance4.Business.Mappers
 {
-    public static class DomainToMLModel
+    public static class BusinessToMLModel
     {
-        public static MLP4Model.ModelInput ToML(this P4Grid grid)
+        public static MLP4Model.ModelInput ToML(this P4GridBO grid)
         {
             MLP4Model.ModelInput model = new();
             int count = 0;
