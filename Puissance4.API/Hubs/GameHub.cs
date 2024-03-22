@@ -110,7 +110,17 @@ namespace Puissance4.API.Hubs
             GameBO? game = gameService.FindByPlayerId(UserId);
             if (game != null)
             {
-                await Clients.Caller.SendAsync("currentGame", new GameDTO(game, true));
+                await Groups.AddToGroupAsync(Context.ConnectionId, game.Id.ToString());
+                if (game.RedPlayerId == UserId)
+                {
+                    game.RedPlayerConnected = true;
+                }
+                if (game.YellowPlayerId == UserId)
+                {
+                    game.YellowPlayerConnected = true;
+                }
+                await Clients.Group(game.Id.ToString())
+                    .SendAsync("currentGame", new GameDTO(game, true));
             }
         }
 
@@ -120,10 +130,20 @@ namespace Puissance4.API.Hubs
             GameBO? game = gameService.FindByPlayerId(UserId);
             if (game != null)
             {
-                if(game.Winner != null || game.VersusAI)
+                if(game.RedPlayerId == UserId)
+                {
+                    game.RedPlayerConnected = false;
+                }
+                if (game.YellowPlayerId == UserId)
+                {
+                    game.YellowPlayerConnected = false;
+                }
+                if (game.Winner != null || game.VersusAI)
                 {
                     await LeaveGame(new GameIdDTO() { GameId = game.Id });
                 }
+                await Clients.OthersInGroup(game.Id.ToString())
+                    .SendAsync("currentGame", new GameDTO(game, true));
             }
         }
 
