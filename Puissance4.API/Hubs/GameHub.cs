@@ -89,7 +89,6 @@ namespace Puissance4.API.Hubs
 
         public async override Task OnConnectedAsync()
         {
-            await SendInfoAsync(Clients.Caller, "Reconnected");
             GameBO? game = gameService.FindByPlayerId(UserId);
             if (game != null)
             {
