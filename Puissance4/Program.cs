@@ -1,4 +1,5 @@
-﻿using Puissance4.Business.Services;
+﻿using Puissance4.Business.BusinessObjects;
+using Puissance4.Business.Services;
 using Puissance4.Domain.Entities;
 using Puissance4.Domain.Enums;
 using ShellProgressBar;
@@ -23,7 +24,7 @@ void Train(int times, bool visible)
 
     for (int i = 0; i < times; i++)
     {
-        P4Grid grid = new P4Grid();
+        GridBO grid = new GridBO();
         P4Color color = P4Color.Yellow;
 
         while (grid.Status == null)
@@ -69,7 +70,7 @@ void Train(int times, bool visible)
     Console.WriteLine($"R: {r}\nY: {y}\nD: {d}");
 }
 
-void Display(P4Grid grid)
+void Display(GridBO grid)
 {
     Console.Clear();
 
