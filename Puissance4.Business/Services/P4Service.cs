@@ -258,8 +258,8 @@ namespace Puissance4.Business.Services
                     copy[x, ColHeight(grid, x)] = color;
                     var input = copy.ToML();
                     var output = MLP4Model.Predict(input);
-                    Console.SetCursorPosition(0, x);
-                    Console.WriteLine($"{x}:{output.Score}");
+                    //Console.SetCursorPosition(0, x);
+                    //Console.WriteLine($"{x}:{output.Score}");
                     float computed = (coeff * output.Score) - ComputeBest(copy, color.Switch(), depht - 1).Item2 ?? 0;
                     if (best.Item2 is null || computed > best.Item2)
                     {

@@ -6,8 +6,8 @@ using ShellProgressBar;
 
 P4Service service = new P4Service();
 
-Train(1, true);
-//Train(100, false);
+//Train(1, true);
+Train(100, false);
 
 
 void Train(int times, bool visible)
