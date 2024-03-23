@@ -14,7 +14,6 @@ namespace Puissance4.API.Hubs
         [Authorize]
         public async Task CreateGame(CreateGameDTO dto)
         {
-
             GameBO game = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
             if(dto.VersusAI)
             {
@@ -34,9 +33,9 @@ namespace Puissance4.API.Hubs
         public async Task JoinGame(GameIdDTO dto)
         {
             GameBO game = gameService.JoinGame(dto.GameId, UserId);
-
             await Groups.AddToGroupAsync(Context.ConnectionId, game.Name);
             await SendCurrentGameAsync(Clients.Group(game.Name), game);
+            await SendInfoAsync(Clients.OthersInGroup(game.Name), "Your opponent join the game");
             await SendAllGamesAsync(Clients.All);
         }
 
@@ -48,7 +47,6 @@ namespace Puissance4.API.Hubs
             {
                 return; 
             }
-
             P4Color color = game.YellowPlayerId == UserId 
                 ? P4Color.Yellow
                 : game.RedPlayerId == UserId 
@@ -77,6 +75,7 @@ namespace Puissance4.API.Hubs
             GameBO game = gameService.Leave(dto.GameId, UserId);
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, game.Name);
             await SendCurrentGameAsync(Clients.Group(game.Name), game);
+            await SendInfoAsync(Clients.OthersInGroup(game.Name), "Your opponent has left the game");
             await SendAllGamesAsync(Clients.All);
         }
 
@@ -90,12 +89,14 @@ namespace Puissance4.API.Hubs
 
         public async override Task OnConnectedAsync()
         {
+            await SendInfoAsync(Clients.Caller, "Reconnected");
             GameBO? game = gameService.FindByPlayerId(UserId);
-            if(game != null)
+            if (game != null)
             {
                 gameService.Reconnect(game.Id, UserId);
                 await Groups.AddToGroupAsync(Context.ConnectionId, game.Name);
                 await SendCurrentGameAsync(Clients.Group(game.Name), game);
+                await SendInfoAsync(Clients.OthersInGroup(game.Name), "Your opponent is reconnected");
             }
             await SendAllGamesAsync(Clients.Caller);
         }
@@ -108,8 +109,8 @@ namespace Puissance4.API.Hubs
                 gameService.Disconnect(game.Id, UserId);
                 await Groups.RemoveFromGroupAsync(Context.ConnectionId, game.Name);
                 await SendCurrentGameAsync(Clients.Group(game.Name), game);
+                await SendInfoAsync(Clients.OthersInGroup(game.Name), "Your opponent is disconnected");
             }
-            await SendAllGamesAsync(Clients.All);
         }
 
         private int? UserId {
@@ -131,6 +132,16 @@ namespace Puissance4.API.Hubs
         private async Task SendCurrentGameAsync(IClientProxy clientProxy, GameBO? game)
         {
             await clientProxy.SendAsync("currentGame", game == null ? null : new GameDTO(game, true));
+        }
+
+        private async Task SendInfoAsync(IClientProxy clientProxy, string message)
+        {
+            await clientProxy.SendAsync("info", message);
+        }
+
+        private async Task SendErrorAsync(IClientProxy clientProxy, string message)
+        {
+            await clientProxy.SendAsync("error", message);
         }
     }
 }
