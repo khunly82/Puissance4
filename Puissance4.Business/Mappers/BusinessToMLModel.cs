@@ -4,7 +4,7 @@ namespace Puissance4.Business.Mappers
 {
     public static class BusinessToMLModel
     {
-        public static MLP4Model.ModelInput ToML(this P4GridBO grid)
+        public static MLP4Model.ModelInput ToML(this GridBO grid)
         {
             MLP4Model.ModelInput model = new();
             int count = 0;

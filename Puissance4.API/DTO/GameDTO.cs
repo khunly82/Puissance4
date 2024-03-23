@@ -13,8 +13,8 @@ namespace Puissance4.API.DTO
             YellowPlayerId = g.YellowPlayerId;
             RedPlayerName = g.RedPlayerName;
             YellowPlayerName = g.YellowPlayerName;
-            RedPlayerConnected = g.RedPlayerConnected;
-            YellowPlayerConnected = g.YellowPlayerConnected;
+            RedPlayerStatus = g.RedPlayerStatus.ToString()?.ToLower();
+            YellowPlayerStatus = g.YellowPlayerStatus.ToString()?.ToLower();
             VersusAI = g.VersusAI;
             Winner = g.Winner;
             if (full)
@@ -36,8 +36,8 @@ namespace Puissance4.API.DTO
         public int? YellowPlayerId { get; set; }
         public string? RedPlayerName { get; set; }
         public string? YellowPlayerName { get; set; }
-        public bool? RedPlayerConnected { get; set; }
-        public bool? YellowPlayerConnected { get; set; }
+        public string? RedPlayerStatus { get; set; }
+        public string? YellowPlayerStatus{ get; set; }
         public bool VersusAI { get; set; }
         public P4Color? Winner { get; set; }
 

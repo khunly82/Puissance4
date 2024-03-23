@@ -1,4 +1,5 @@
 ﻿using Puissance4.Business.BusinessObjects;
+using Puissance4.Business.Enums;
 using Puissance4.Business.Exceptions;
 using Puissance4.DAL.Repositories;
 using Puissance4.Domain.Entities;
@@ -64,13 +65,13 @@ namespace Puissance4.Business.Services
             {
                 game.RedPlayerId = player.Id;
                 game.RedPlayerName = player.Username;
-                game.RedPlayerConnected = true;
+                game.RedPlayerStatus = PlayerStatus.Connected;
             }
             if (color == P4Color.Yellow)
             {
                 game.YellowPlayerId = player.Id;
                 game.YellowPlayerName = player.Username;
-                game.YellowPlayerConnected = true;
+                game.YellowPlayerStatus = PlayerStatus.Connected;
             }
         }
 
@@ -103,18 +104,24 @@ namespace Puissance4.Business.Services
         {
             GameBO? game = Find(gameId)
                 ?? throw new GameException("This game does not exist");
-            
-            if (game.YellowPlayerId ==  playerId)
+
+            if (game.YellowPlayerId == playerId)
             {
-                game.YellowPlayerId = null;
-                game.YellowPlayerName = null;
-                game.YellowPlayerConnected = null;
+                game.YellowPlayerStatus = PlayerStatus.Disconnected;
+                if(game.Winner == null)
+                {
+                    game.Winner = P4Color.Red;
+                    Remove(game);
+                }
             }
             if (game.RedPlayerId == playerId)
             {
-                game.RedPlayerId = null;
-                game.RedPlayerName = null;
-                game.RedPlayerConnected = null;
+                game.RedPlayerStatus = PlayerStatus.Disconnected;
+                if (game.Winner == null)
+                {
+                    game.Winner = P4Color.Yellow;
+                    Remove(game);
+                }
             }
 
             return game;
@@ -127,11 +134,11 @@ namespace Puissance4.Business.Services
 
             if (game.YellowPlayerId == playerId)
             {
-                game.YellowPlayerConnected = true;
+                game.YellowPlayerStatus = PlayerStatus.Connected;
             }
             if (game.RedPlayerId == playerId)
             {
-                game.RedPlayerConnected = true;
+                game.RedPlayerStatus = PlayerStatus.Connected;
             }
             return game;
         }
@@ -143,11 +150,11 @@ namespace Puissance4.Business.Services
 
             if (game.YellowPlayerId == playerId)
             {
-                game.YellowPlayerConnected = false;
+                game.YellowPlayerStatus = PlayerStatus.Connecting;
             }
             if (game.RedPlayerId == playerId)
             {
-                game.RedPlayerConnected = false;
+                game.RedPlayerStatus = PlayerStatus.Connecting;
             }
             return game;
         }
@@ -155,6 +162,25 @@ namespace Puissance4.Business.Services
         public GameBO? FindByPlayerId(int? playerId)
         {
             return _games.FirstOrDefault(g => g.RedPlayerId == playerId || g.YellowPlayerId == playerId);
+        }
+
+        public GameBO ClaimVictory(Guid gameId, int? playerId)
+        {
+            GameBO? game = Find(gameId)
+                ?? throw new GameException("This game does not exist");
+
+            if (game.YellowPlayerId == playerId && game.RedPlayerStatus == PlayerStatus.Connecting)
+            {
+                game.Winner = P4Color.Yellow;
+                Remove(game);
+            }
+            if (game.RedPlayerId == playerId && game.YellowPlayerStatus == PlayerStatus.Connecting)
+            {
+                game.Winner = P4Color.Red;
+                Remove(game);
+            }
+
+            return game;
         }
     }
 }

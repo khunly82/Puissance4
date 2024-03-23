@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.SignalR;
 using Puissance4.API.DTO;
 using Puissance4.Business.BusinessObjects;
-using Puissance4.Business.Exceptions;
 using Puissance4.Business.Services;
 using Puissance4.Domain.Enums;
 using System.Security.Claims;
@@ -16,33 +15,29 @@ namespace Puissance4.API.Hubs
         public async Task CreateGame(CreateGameDTO dto)
         {
 
-            GameBO g = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
-            
-            await Groups.AddToGroupAsync(Context.ConnectionId, g.Id.ToString());
-
+            GameBO game = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
             if(dto.VersusAI)
             {
-                g.VersusAI = true;
+                game.VersusAI = true;
                 if(dto.Color == P4Color.Yellow)
                 {
-                    p4Service.AIPlay(g.Grid, P4Color.Red, 4);
+                    p4Service.AIPlay(game.Grid, P4Color.Red, 4);
                 }
             }
 
-
-            await Clients.Caller.SendAsync("currentGame", new GameDTO(g, true));
-            await BroadCastAllGamesAsync(Clients.All);
+            await Groups.AddToGroupAsync(Context.ConnectionId, game.Name);
+            await SendCurrentGameAsync(Clients.Caller, game);
+            await SendAllGamesAsync(Clients.All);
         }
 
         [Authorize]
         public async Task JoinGame(GameIdDTO dto)
         {
-            GameBO g = gameService.JoinGame(dto.GameId, UserId);
+            GameBO game = gameService.JoinGame(dto.GameId, UserId);
 
-            await Groups.AddToGroupAsync(Context.ConnectionId, dto.GameId.ToString());
-            await Clients.Group(dto.GameId.ToString())
-                .SendAsync("currentGame", new GameDTO(g, true));
-            await BroadCastAllGamesAsync(Clients.All);
+            await Groups.AddToGroupAsync(Context.ConnectionId, game.Name);
+            await SendCurrentGameAsync(Clients.Group(game.Name), game);
+            await SendAllGamesAsync(Clients.All);
         }
 
         [Authorize]
@@ -54,37 +49,25 @@ namespace Puissance4.API.Hubs
                 return; 
             }
 
-            P4Color color = 
-                game.YellowPlayerId == UserId 
-                    ? P4Color.Yellow
-                    : game.RedPlayerId == UserId 
-                        ? P4Color.Red : P4Color.None;
+            P4Color color = game.YellowPlayerId == UserId 
+                ? P4Color.Yellow
+                : game.RedPlayerId == UserId 
+                    ? P4Color.Red 
+                    : P4Color.None;
 
-            if(color == P4Color.None)
+            p4Service.Play(game.Grid, dto.X, color);
+            await SendCurrentGameAsync(Clients.Group(game.Name), game);
+
+            if (game.VersusAI && game.Winner == null)
             {
-                return;
+                p4Service.AIPlay(game.Grid, color.Switch(), 4);
+                await SendCurrentGameAsync(Clients.Group(game.Name), game);
             }
 
-            try
+            if(game.Winner != null)
             {
-                int playerY = p4Service.Play(game.Grid, dto.X, color).Item2;
-                await Clients.Group(game.Id.ToString()).SendAsync("move", new MoveDTO(dto.X, playerY, color));
-
-                if (game.VersusAI && game.Winner == null)
-                {
-                    (int, int) opponentMove = p4Service.AIPlay(game.Grid, color.Switch(), 4);
-                    await Clients.Caller.SendAsync(
-                        "move", new MoveDTO(opponentMove.Item1, opponentMove.Item2, color.Switch())
-                    );
-                }
-                if(game.Winner != null)
-                {
-                    await Clients.Group(game.Id.ToString()).SendAsync("currentGame", new GameDTO(game, true));
-                }
-            } 
-            catch (GameException ex) 
-            {
-                await Clients.Caller.SendAsync("error", ex.Message);
+                gameService.Remove(game);
+                await SendAllGamesAsync(Clients.All);
             }
         }
 
@@ -92,59 +75,41 @@ namespace Puissance4.API.Hubs
         public async Task LeaveGame(GameIdDTO dto)
         {
             GameBO game = gameService.Leave(dto.GameId, UserId);
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, dto.GameId.ToString());
-            await Clients.Caller.SendAsync("leave");
-            await Clients.OthersInGroup(dto.GameId.ToString()).SendAsync("opponentLeave");
-            await Clients.OthersInGroup(dto.GameId.ToString()).SendAsync("currentGame", new GameDTO(game, true));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, game.Name);
+            await SendCurrentGameAsync(Clients.Group(game.Name), game);
+            await SendAllGamesAsync(Clients.All);
+        }
 
-            if(!(game.YellowPlayerConnected ?? false) && !(game.RedPlayerConnected ?? false))
-            {
-                gameService.Remove(game);
-                await BroadCastAllGamesAsync(Clients.All);
-            }
+        [Authorize]
+        public async Task ClaimVictory(GameIdDTO dto)
+        {
+            GameBO game = gameService.ClaimVictory(dto.GameId, UserId);
+            await SendCurrentGameAsync(Clients.Caller, game);
+            await SendAllGamesAsync(Clients.All);
         }
 
         public async override Task OnConnectedAsync()
         {
-            await BroadCastAllGamesAsync(Clients.Caller);
             GameBO? game = gameService.FindByPlayerId(UserId);
-            if (game != null)
+            if(game != null)
             {
-                await Groups.AddToGroupAsync(Context.ConnectionId, game.Id.ToString());
-                if (game.RedPlayerId == UserId)
-                {
-                    game.RedPlayerConnected = true;
-                }
-                if (game.YellowPlayerId == UserId)
-                {
-                    game.YellowPlayerConnected = true;
-                }
-                await Clients.Group(game.Id.ToString())
-                    .SendAsync("currentGame", new GameDTO(game, true));
+                gameService.Reconnect(game.Id, UserId);
+                await Groups.AddToGroupAsync(Context.ConnectionId, game.Name);
+                await SendCurrentGameAsync(Clients.Group(game.Name), game);
             }
+            await SendAllGamesAsync(Clients.Caller);
         }
 
         public async override Task OnDisconnectedAsync(Exception? exception)
         {
-            await BroadCastAllGamesAsync(Clients.All);
             GameBO? game = gameService.FindByPlayerId(UserId);
-            if (game != null)
+            if(game != null)
             {
-                if(game.RedPlayerId == UserId)
-                {
-                    game.RedPlayerConnected = false;
-                }
-                if (game.YellowPlayerId == UserId)
-                {
-                    game.YellowPlayerConnected = false;
-                }
-                if (game.Winner != null || game.VersusAI)
-                {
-                    await LeaveGame(new GameIdDTO() { GameId = game.Id });
-                }
-                await Clients.OthersInGroup(game.Id.ToString())
-                    .SendAsync("currentGame", new GameDTO(game, true));
+                gameService.Disconnect(game.Id, UserId);
+                await Groups.RemoveFromGroupAsync(Context.ConnectionId, game.Name);
+                await SendCurrentGameAsync(Clients.Group(game.Name), game);
             }
+            await SendAllGamesAsync(Clients.All);
         }
 
         private int? UserId {
@@ -158,11 +123,14 @@ namespace Puissance4.API.Hubs
             }
         }
 
-        
-
-        private async Task BroadCastAllGamesAsync(IClientProxy clientProxy)
+        private async Task SendAllGamesAsync(IClientProxy clientProxy)
         {
             await clientProxy.SendAsync("allGames", gameService.FindAll().Select(g => new GameDTO(g)));
+        }
+
+        private async Task SendCurrentGameAsync(IClientProxy clientProxy, GameBO? game)
+        {
+            await clientProxy.SendAsync("currentGame", game == null ? null : new GameDTO(game, true));
         }
     }
 }

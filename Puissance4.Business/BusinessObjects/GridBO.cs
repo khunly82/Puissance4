@@ -3,14 +3,14 @@ using System.Collections;
 
 namespace Puissance4.Business.BusinessObjects
 {
-    public class P4GridBO : IEnumerable<P4Color>
+    public class GridBO : IEnumerable<P4Color>
     {
 
-        public P4GridBO()
+        public GridBO()
         {
 
         }
-        public P4GridBO(P4Color[,] tiles)
+        public GridBO(P4Color[,] tiles)
         {
             Tiles = tiles;
             Count = this.Count(c => c != P4Color.None);
@@ -37,9 +37,9 @@ namespace Puissance4.Business.BusinessObjects
         public int Width => Tiles.GetLength(0);
         public int Height => Tiles.GetLength(1);
 
-        public P4GridBO Clone()
+        public GridBO Clone()
         {
-            return new P4GridBO((P4Color[,])Tiles.Clone());
+            return new GridBO((P4Color[,])Tiles.Clone());
         }
 
         public IEnumerator<P4Color> GetEnumerator()
