@@ -33,7 +33,7 @@ void Train(int times, bool visible)
             //if(color == P4Color.Yellow)
             if(color == P4Color.Red)
             {
-                service.AIPlay(grid, color, 3);
+                service.AIPlay(grid, color, 4);
             }
             else
             {
