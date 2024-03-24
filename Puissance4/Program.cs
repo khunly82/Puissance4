@@ -5,8 +5,8 @@ using ShellProgressBar;
 
 P4Service service = new P4Service();
 
-//Train(1, true);
-Train(100, false);
+Train(1, true);
+//Train(100, false);
 
 
 void Train(int times, bool visible)
@@ -33,12 +33,12 @@ void Train(int times, bool visible)
             //if(color == P4Color.Yellow)
             if(color == P4Color.Red)
             {
-                service.AIPlay(grid, color, 4);
+                service.AIPlay(grid, color, 3);
             }
             else
             {
-                //service.IAPlay(grid, color, 4);
-                var _ = service.DirectPlay(grid, color) ?? service.RandomPlay(grid, color);
+                service.AIPlay(grid, color, 3);
+                //var _ = service.DirectPlay(grid, color) ?? service.RandomPlay(grid, color);
             }
             if (visible)
             {

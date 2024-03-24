@@ -6,5 +6,6 @@ namespace Puissance4.API.DTO
     {
         public P4Color Color { get; set; }
         public bool VersusAI { get; set; }
+        public int? AIDepth { get; set; }
     }
 }

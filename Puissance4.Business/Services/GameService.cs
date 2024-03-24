@@ -7,13 +7,13 @@ using Puissance4.Domain.Enums;
 
 namespace Puissance4.Business.Services
 {
-    public class GameService(PlayerRepository _playerRepository)
+    public class GameService(PlayerRepository playerRepository, GameRepository gameRepository)
     {
-        private static List<GameBO> _games = new();
+        private static List<GameBO> _activeGames = new();
 
-        public GameBO CreateGame(P4Color color, bool versusAI, int? userId)
+        public GameBO CreateGame(P4Color color, bool versusAI, int? aIDepth, int? userId)
         {
-            Player? player = _playerRepository.FindById(userId)
+            Player? player = playerRepository.FindById(userId)
                 ?? throw new GameException("This player does not exist");
 
             Guid guid = Guid.NewGuid();
@@ -22,20 +22,21 @@ namespace Puissance4.Business.Services
             {
                 Id = guid,
                 VersusAI = versusAI,
+                AIDepth = aIDepth,
             };
 
             JoinGame(game, color, player);
 
-            _games.Add(game);
+            _activeGames.Add(game);
             return game;
         }
 
         public GameBO JoinGame(Guid gameId, int? userId)
         {
-            GameBO? game = Find(gameId)
+            GameBO? game = FindOneActive(gameId)
                 ?? throw new GameException("This game does not exist");
 
-            Player? player = _playerRepository.FindById(userId)
+            Player? player = playerRepository.FindById(userId)
                 ?? throw new GameException("This player does not exist");
 
             if (game.VersusAI || (game.YellowPlayerId != null && game.RedPlayerId != null))
@@ -76,33 +77,24 @@ namespace Puissance4.Business.Services
         }
 
 
-        public GameBO? Find(Guid gameId)
+        public GameBO? FindOneActive(Guid gameId)
         {
-            return _games.FirstOrDefault(g => g.Id == gameId);
+            return _activeGames.FirstOrDefault(g => g.Id == gameId);
         }
 
-        public List<GameBO> FindAll()
+        public List<GameBO> FindAllActive()
         {
-            return _games;
-        }
-
-        public void Delete(int? userId)
-        {
-            GameBO? g = _games.FirstOrDefault(g => g.YellowPlayerId == userId || g.RedPlayerId == userId);
-            if(g != null)
-            {
-                _games.Remove(g);
-            }
+            return _activeGames;
         }
 
         public void Remove(GameBO game)
         {
-            _games.Remove(game);
+            _activeGames.Remove(game);
         }
 
         public GameBO Leave(Guid gameId, int? playerId)
         {
-            GameBO? game = Find(gameId)
+            GameBO? game = FindOneActive(gameId)
                 ?? throw new GameException("This game does not exist");
 
             if (game.YellowPlayerId == playerId)
@@ -129,7 +121,7 @@ namespace Puissance4.Business.Services
 
         public GameBO Reconnect(Guid gameId, int? playerId)
         {
-            GameBO? game = Find(gameId)
+            GameBO? game = FindOneActive(gameId)
                 ?? throw new GameException("This game does not exist");
 
             if (game.YellowPlayerId == playerId)
@@ -145,7 +137,7 @@ namespace Puissance4.Business.Services
 
         public GameBO Disconnect(Guid gameId, int? playerId)
         {
-            GameBO? game = Find(gameId)
+            GameBO? game = FindOneActive(gameId)
                 ?? throw new GameException("This game does not exist");
 
             if (game.YellowPlayerId == playerId)
@@ -159,14 +151,14 @@ namespace Puissance4.Business.Services
             return game;
         }
 
-        public GameBO? FindByPlayerId(int? playerId)
+        public GameBO? FindOneActiveByPlayerId(int? playerId)
         {
-            return _games.FirstOrDefault(g => g.RedPlayerId == playerId || g.YellowPlayerId == playerId);
+            return _activeGames.FirstOrDefault(g => g.RedPlayerId == playerId || g.YellowPlayerId == playerId);
         }
 
         public GameBO ClaimVictory(Guid gameId, int? playerId)
         {
-            GameBO? game = Find(gameId)
+            GameBO? game = FindOneActive(gameId)
                 ?? throw new GameException("This game does not exist");
 
             if (game.YellowPlayerId == playerId && game.RedPlayerStatus == PlayerStatus.Connecting)
@@ -181,6 +173,33 @@ namespace Puissance4.Business.Services
             }
 
             return game;
+        }
+
+        public IEnumerable<GameBO> FindByPlayerId(int playerId)
+        {
+            IEnumerable<Game> games = gameRepository.FindByPlayerId(playerId);
+            return games.Select(g => new GameBO(g));
+        }
+
+        public void SaveGame(GameBO game)
+        {
+            Game g = new Game
+            {
+                
+            };
+            gameRepository.Add(g);
+        }
+
+        public void ChangePlayerStatus(GameBO game, P4Color color, PlayerStatus? status)
+        {
+            if (color == P4Color.Red)
+            {
+                game.RedPlayerStatus = status;
+            }
+            else if (color == P4Color.Yellow)
+            {
+                game.YellowPlayerStatus = status;
+            }
         }
     }
 }

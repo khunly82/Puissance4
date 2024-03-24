@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Puissance4.API.DTO;
 using Puissance4.Business.BusinessObjects;
+using Puissance4.Business.Enums;
 using Puissance4.Business.Services;
 using Puissance4.Domain.Enums;
 using System.Security.Claims;
@@ -14,13 +15,15 @@ namespace Puissance4.API.Hubs
         [Authorize]
         public async Task CreateGame(CreateGameDTO dto)
         {
-            GameBO game = gameService.CreateGame(dto.Color, dto.VersusAI, UserId);
-            if(dto.VersusAI)
+            GameBO game = gameService.CreateGame(dto.Color, dto.VersusAI, dto.AIDepth, UserId);
+            if(dto.VersusAI && dto.AIDepth != null)
             {
-                game.VersusAI = true;
                 if(dto.Color == P4Color.Yellow)
                 {
-                    p4Service.AIPlay(game.Grid, P4Color.Red, 4);
+                    gameService.ChangePlayerStatus(game, P4Color.Yellow, PlayerStatus.Computing);
+                    await SendCurrentGameAsync(Clients.Caller, game);
+                    p4Service.AIPlay(game.Grid, P4Color.Red, (int)dto.AIDepth);
+                    gameService.ChangePlayerStatus(game, P4Color.Yellow, null);
                 }
             }
 
@@ -42,7 +45,7 @@ namespace Puissance4.API.Hubs
         [Authorize]
         public async Task Play(PlayDTO dto)
         {
-            GameBO? game = gameService.Find(dto.GameId);
+            GameBO? game = gameService.FindOneActive(dto.GameId);
             if (game is null)
             {
                 return; 
@@ -56,9 +59,13 @@ namespace Puissance4.API.Hubs
             p4Service.Play(game.Grid, dto.X, color);
             await SendCurrentGameAsync(Clients.Group(game.Name), game);
 
-            if (game.VersusAI && game.Winner == null)
+            if (game.VersusAI && game.AIDepth != null && game.Winner == null)
             {
-                p4Service.AIPlay(game.Grid, color.Switch(), 4);
+                gameService.ChangePlayerStatus(game, color.Switch(), PlayerStatus.Computing);
+                await SendCurrentGameAsync(Clients.Group(game.Name), game);
+
+                p4Service.AIPlay(game.Grid, color.Switch(), (int)game.AIDepth);
+                gameService.ChangePlayerStatus(game, color.Switch(), null);
                 await SendCurrentGameAsync(Clients.Group(game.Name), game);
             }
 
@@ -89,7 +96,7 @@ namespace Puissance4.API.Hubs
 
         public async override Task OnConnectedAsync()
         {
-            GameBO? game = gameService.FindByPlayerId(UserId);
+            GameBO? game = gameService.FindOneActiveByPlayerId(UserId);
             if (game != null)
             {
                 gameService.Reconnect(game.Id, UserId);
@@ -102,7 +109,7 @@ namespace Puissance4.API.Hubs
 
         public async override Task OnDisconnectedAsync(Exception? exception)
         {
-            GameBO? game = gameService.FindByPlayerId(UserId);
+            GameBO? game = gameService.FindOneActiveByPlayerId(UserId);
             if(game != null)
             {
                 gameService.Disconnect(game.Id, UserId);
@@ -125,7 +132,7 @@ namespace Puissance4.API.Hubs
 
         private async Task SendAllGamesAsync(IClientProxy clientProxy)
         {
-            await clientProxy.SendAsync("allGames", gameService.FindAll().Select(g => new GameDTO(g)));
+            await clientProxy.SendAsync("allGames", gameService.FindAllActive().Select(g => new GameDTO(g)));
         }
 
         private async Task SendCurrentGameAsync(IClientProxy clientProxy, GameBO? game)

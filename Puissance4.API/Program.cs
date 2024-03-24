@@ -35,6 +35,7 @@ builder.Services.AddScoped(b =>
     new SqlConnection(builder.Configuration.GetConnectionString("Main"))
 );
 builder.Services.AddScoped<PlayerRepository>();
+builder.Services.AddScoped<GameRepository>();
 
 var app = builder.Build();
 

@@ -216,8 +216,8 @@ namespace Puissance4.Business.Services
 
             try
             {
-                (int?, float?) best = ComputeBest(grid, color, depht);
                 
+                (int?, float?) best = ComputeBest(grid, color, depht);
 
                 if (best.Item1 is null)
                 {
@@ -234,16 +234,16 @@ namespace Puissance4.Business.Services
             }
         }
 
-        private (int?, float?) ComputeBest(GridBO grid, P4Color color, int depht = 1)
+        private (int?, float?) ComputeBest(GridBO grid, P4Color color, int depth = 1)
         {
             //if you want to stop if it's a winning move
-            //int? winningMove = GetWinningMove(grid, color);
-            //if (winningMove is not null)
-            //{
-            //    return (winningMove, float.PositiveInfinity);
-            //}
+            int? winningMove = GetWinningMove(grid, color);
+            if (winningMove is not null)
+            {
+                return (winningMove, float.PositiveInfinity);
+            }
 
-            if (depht == 0)
+            if (depth == 0)
             {
                 return (null, 0);
             }
@@ -260,7 +260,7 @@ namespace Puissance4.Business.Services
                     var output = MLP4Model.Predict(input);
                     //Console.SetCursorPosition(0, x);
                     //Console.WriteLine($"{x}:{output.Score}");
-                    float computed = (coeff * output.Score) - ComputeBest(copy, color.Switch(), depht - 1).Item2 ?? 0;
+                    float computed = (coeff * output.Score) - ComputeBest(copy, color.Switch(), depth - 1).Item2 ?? 0;
                     if (best.Item2 is null || computed > best.Item2)
                     {
                         best = (x, computed);

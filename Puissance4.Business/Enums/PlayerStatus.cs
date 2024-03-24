@@ -5,5 +5,6 @@
         Connected,
         Disconnected,
         Connecting,
+        Computing,
     }
 }
